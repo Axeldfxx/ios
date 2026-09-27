@@ -526,11 +526,12 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
   width: 280px;
   height: 280px;
-  perspective: 1000px;
-  animation: heroFloat 6s ease-in-out infinite;
+  animation: heroFloat 6s step-end infinite;
 }
 
-/* Tap to flip between the square icon and the freeform one */
+/* Tap to flip between the square icon and the freeform one.
+   The 3D setup only exists while .flipping is set (see index.md): at rest the visible
+   face is a plain 2D image, so moving it doesn't go through the 3D render path */
 .hero-icon-flip {
   width: 100%;
   height: 100%;
@@ -539,9 +540,11 @@ h1, h2, h3, h4, h5, h6 {
   background: none;
   cursor: pointer;
   outline: none;
-  transform-style: preserve-3d;
-  transition: transform .8s cubic-bezier(.2,.7,.2,1);
 }
+
+.hero-icon-wrapper.flipping { perspective: 1000px; }
+.hero-icon-wrapper.flipping .hero-icon-flip { transform-style: preserve-3d; }
+.hero-icon-wrapper.animating .hero-icon-flip { transition: transform .8s cubic-bezier(.2,.7,.2,1); }
 
 .hero-icon-flip:focus-visible {  /* keep a ring for keyboard users */
   outline: 2px solid var(--md-primary);
@@ -549,31 +552,132 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--md-shape-md);
 }
 
-.hero-icon-wrapper.flipped .hero-icon-flip {
+.hero-icon-wrapper.flipping.flipped .hero-icon-flip {
   transform: rotateY(180deg);
 }
 
+/* The *_glow.svg icons have the shadow baked in, with a 320-unit margin around the
+   1024-unit icon so it isn't clipped: 320/1024 = 31.25% on each side */
 .hero-icon-face {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  filter: drop-shadow(0 16px 48px rgba(128,50,200,.30));
+  top: -31.25%;
+  left: -31.25%;
+  width: 162.5%;
+  height: 162.5%;
+  max-width: none;  /* the global img rule would cap it at 100% */
 }
 
-.hero-icon-back {
-  transform: rotateY(180deg);
+.hero-icon-wrapper.flipping .hero-icon-face { backface-visibility: hidden; }
+.hero-icon-wrapper.flipping .hero-icon-back { transform: rotateY(180deg); }
+
+/* At rest, only the current face is shown */
+.hero-icon-wrapper:not(.flipping):not(.flipped) .hero-icon-back,
+.hero-icon-wrapper.flipped:not(.flipping) .hero-icon-face:not(.hero-icon-back) {
+  visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-icon-wrapper { animation: none; }
-  .hero-icon-flip { transition: none; }
 }
 
-@keyframes heroFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+@keyframes heroFloat {  /* ease-in-out, pre-stepped to 0.25px: redraws 96 times per 6s cycle instead of every frame */
+  0%, 100% { transform: translateY(0); }
+  3.65% { transform: translateY(-0.25px); }
+  6.26% { transform: translateY(-0.5px); }
+  8.04% { transform: translateY(-0.75px); }
+  9.46% { transform: translateY(-1px); }
+  10.69% { transform: translateY(-1.25px); }
+  11.79% { transform: translateY(-1.5px); }
+  12.79% { transform: translateY(-1.75px); }
+  13.72% { transform: translateY(-2px); }
+  14.59% { transform: translateY(-2.25px); }
+  15.41% { transform: translateY(-2.5px); }
+  16.19% { transform: translateY(-2.75px); }
+  16.94% { transform: translateY(-3px); }
+  17.67% { transform: translateY(-3.25px); }
+  18.37% { transform: translateY(-3.5px); }
+  19.05% { transform: translateY(-3.75px); }
+  19.72% { transform: translateY(-4px); }
+  20.37% { transform: translateY(-4.25px); }
+  21.01% { transform: translateY(-4.5px); }
+  21.64% { transform: translateY(-4.75px); }
+  22.26% { transform: translateY(-5px); }
+  22.88% { transform: translateY(-5.25px); }
+  23.49% { transform: translateY(-5.5px); }
+  24.09% { transform: translateY(-5.75px); }
+  24.70% { transform: translateY(-6px); }
+  25.30% { transform: translateY(-6.25px); }
+  25.91% { transform: translateY(-6.5px); }
+  26.51% { transform: translateY(-6.75px); }
+  27.12% { transform: translateY(-7px); }
+  27.74% { transform: translateY(-7.25px); }
+  28.36% { transform: translateY(-7.5px); }
+  28.99% { transform: translateY(-7.75px); }
+  29.63% { transform: translateY(-8px); }
+  30.28% { transform: translateY(-8.25px); }
+  30.95% { transform: translateY(-8.5px); }
+  31.63% { transform: translateY(-8.75px); }
+  32.33% { transform: translateY(-9px); }
+  33.06% { transform: translateY(-9.25px); }
+  33.81% { transform: translateY(-9.5px); }
+  34.59% { transform: translateY(-9.75px); }
+  35.41% { transform: translateY(-10px); }
+  36.28% { transform: translateY(-10.25px); }
+  37.21% { transform: translateY(-10.5px); }
+  38.21% { transform: translateY(-10.75px); }
+  39.31% { transform: translateY(-11px); }
+  40.54% { transform: translateY(-11.25px); }
+  41.96% { transform: translateY(-11.5px); }
+  43.74% { transform: translateY(-11.75px); }
+  46.35% { transform: translateY(-12px); }
+  53.65% { transform: translateY(-11.75px); }
+  56.26% { transform: translateY(-11.5px); }
+  58.04% { transform: translateY(-11.25px); }
+  59.46% { transform: translateY(-11px); }
+  60.69% { transform: translateY(-10.75px); }
+  61.79% { transform: translateY(-10.5px); }
+  62.79% { transform: translateY(-10.25px); }
+  63.72% { transform: translateY(-10px); }
+  64.59% { transform: translateY(-9.75px); }
+  65.41% { transform: translateY(-9.5px); }
+  66.19% { transform: translateY(-9.25px); }
+  66.94% { transform: translateY(-9px); }
+  67.67% { transform: translateY(-8.75px); }
+  68.37% { transform: translateY(-8.5px); }
+  69.05% { transform: translateY(-8.25px); }
+  69.72% { transform: translateY(-8px); }
+  70.37% { transform: translateY(-7.75px); }
+  71.01% { transform: translateY(-7.5px); }
+  71.64% { transform: translateY(-7.25px); }
+  72.26% { transform: translateY(-7px); }
+  72.88% { transform: translateY(-6.75px); }
+  73.49% { transform: translateY(-6.5px); }
+  74.09% { transform: translateY(-6.25px); }
+  74.70% { transform: translateY(-6px); }
+  75.30% { transform: translateY(-5.75px); }
+  75.91% { transform: translateY(-5.5px); }
+  76.51% { transform: translateY(-5.25px); }
+  77.12% { transform: translateY(-5px); }
+  77.74% { transform: translateY(-4.75px); }
+  78.36% { transform: translateY(-4.5px); }
+  78.99% { transform: translateY(-4.25px); }
+  79.63% { transform: translateY(-4px); }
+  80.28% { transform: translateY(-3.75px); }
+  80.95% { transform: translateY(-3.5px); }
+  81.63% { transform: translateY(-3.25px); }
+  82.33% { transform: translateY(-3px); }
+  83.06% { transform: translateY(-2.75px); }
+  83.81% { transform: translateY(-2.5px); }
+  84.59% { transform: translateY(-2.25px); }
+  85.41% { transform: translateY(-2px); }
+  86.28% { transform: translateY(-1.75px); }
+  87.21% { transform: translateY(-1.5px); }
+  88.21% { transform: translateY(-1.25px); }
+  89.31% { transform: translateY(-1px); }
+  90.54% { transform: translateY(-0.75px); }
+  91.96% { transform: translateY(-0.5px); }
+  93.74% { transform: translateY(-0.25px); }
+  96.35% { transform: translateY(0); }
 }
 
 /* --- Feature Cards --- */

@@ -27,8 +27,8 @@ title: Home
     <div class="hero-visual">
       <div class="hero-icon-wrapper" id="heroIcon">
         <button class="hero-icon-flip" aria-label="Flip the icon">
-          <img class="hero-icon-face" src="{{ site.icon_url }}" alt="Murine Launcher icon">
-          <img class="hero-icon-face hero-icon-back" src="{{ site.icon_freeform_url }}" alt="Murine Launcher icon, freeform" aria-hidden="true">
+          <img class="hero-icon-face" src="{{ '/assets/img/icon_adaptive_baked.svg' | relative_url }}" alt="Murine Launcher icon">
+          <img class="hero-icon-face hero-icon-back" src="{{ '/assets/img/icon_freeform_baked.svg' | relative_url }}" alt="Murine Launcher icon, freeform" aria-hidden="true">
         </button>
       </div>
     </div>
@@ -37,7 +37,19 @@ title: Home
 
 <script>
   const heroIcon = document.getElementById('heroIcon');
-  heroIcon.addEventListener('click', () => heroIcon.classList.toggle('flipped'));
+  const heroFlip = heroIcon.querySelector('.hero-icon-flip');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  heroIcon.addEventListener('click', () => {
+    if (reduceMotion.matches) { heroIcon.classList.toggle('flipped'); return; }
+    if (!heroIcon.classList.contains('flipping')) {
+      heroIcon.classList.add('flipping');   // 3D on, still showing the current face
+      void heroFlip.offsetWidth;            // commit that before the transition starts
+      heroIcon.classList.add('animating');
+    }
+    heroIcon.classList.toggle('flipped');   // mid-flip, this reverses from the current angle
+  });
+  // Back to flat 2D once the flip ends (same pixels, no jump)
+  heroFlip.addEventListener('transitionend', () => heroIcon.classList.remove('flipping', 'animating'));
 </script>
 
 <!-- Features -->
