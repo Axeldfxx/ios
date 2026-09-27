@@ -255,6 +255,11 @@ public class ClockDrawableWrapper extends CustomAdaptiveIconDrawable implements 
             result.hourLayerIndex = hourLayerIndex;
             result.minuteLayerIndex = minuteLayerIndex;
             result.secondLayerIndex = secondLayerIndex;
+            // The monochrome layer can have fewer layers than the colored one (e.g. no second hand)
+            int layerCount = ((LayerDrawable) ((AdaptiveIconDrawable) icon).getForeground()).getNumberOfLayers();
+            if (result.hourLayerIndex >= layerCount) result.hourLayerIndex = INVALID_VALUE;
+            if (result.minuteLayerIndex >= layerCount) result.minuteLayerIndex = INVALID_VALUE;
+            if (result.secondLayerIndex >= layerCount) result.secondLayerIndex = INVALID_VALUE;
             return result;
         }
 
