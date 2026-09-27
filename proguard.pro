@@ -33,6 +33,19 @@
   public static final ** CREATOR;
 }
 
+# Keep android:onClick methods referenced from XML layouts
+-keepclassmembers class com.android.launcher3.dragndrop.AddItemActivity {
+    public void onCancelClick(android.view.View);
+    public void onPlaceAutomaticallyClick(android.view.View);
+}
+-keepclassmembers class com.android.launcher3.secondarydisplay.SecondaryDisplayLauncher {
+    public void onAppsButtonClicked(android.view.View);
+}
+## BROADER RULE:
+##-keepclassmembers class * extends android.app.Activity {
+##    public void *(android.view.View);
+##}
+
 # Lawnchair specific rules.
 #-keep class app.lawnchair.LawnchairProto$* { *; }
 #-keep class app.lawnchair.LawnchairApp { *; }
