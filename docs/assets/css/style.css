@@ -22,7 +22,12 @@ html, body, img, svg, picture, video {
   --md-on-tertiary: #FFFFFF;
   --md-tertiary-container: #FFDCE0;
   --md-on-tertiary-container: #400008;
-  --md-nav-pill-active: #FFDCE0; /* same as --md-tertiary-container */
+  --md-nav-link-active: #FFD8EC; /* selected nav link (e.g."Home") [.nav-link.active] */
+  --md-on-nav-link-active: #3A0029;
+  --md-nav-pill: #BE5050; /* "Download" (.nav-pill); currently same as --md-tertiary */
+  --md-on-nav-pill: #FFFFFF;
+  --md-nav-pill-active: #FFDCE0; /* selected "Download" (.nav-pill.active) */
+  --md-on-nav-pill-active: #400008;
   --md-error: #BA1A1A;
   --md-on-error: #FFFFFF;
   --md-surface: #FEF7FF;
@@ -67,13 +72,18 @@ html, body, img, svg, picture, video {
   --md-on-primary-container: #F8DDF8;
   --md-secondary: #F8B4DA;
   --md-on-secondary: #541D42;
-  --md-secondary-container: #322532; /* OLD: #7E4465 */
+  --md-secondary-container: #7E4465;
   --md-on-secondary-container: #FFD8EC;
   --md-tertiary: #FFB8B8;
   --md-on-tertiary: #5E1520;
   --md-tertiary-container: #C1556A; /* NOTE: #7F425A might be less punchy, but feels less personal */
   --md-on-tertiary-container: #FFDCE0;
-  --md-nav-pill-active: #35242B; /* pink-peach (was #33252E), as subtle as --md-secondary-container */
+  --md-nav-link-active: #322532; /* selected nav link (e.g."Home") [.nav-link.active] */
+  --md-on-nav-link-active: #FFD8EC;
+  --md-nav-pill: #FFB8B8; /* "Download" (.nav-pill); currently same as --md-tertiary */
+  --md-on-nav-pill: #5E1520;
+  --md-nav-pill-active: #35242B; /* selected "Download" (.nav-pill.active) */
+  --md-on-nav-pill-active: #FFDCE0;
   --md-error: #FFB4AB;
   --md-on-error: #690005;
   --md-surface: #15121A;
@@ -235,8 +245,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-link.active {
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
+  background: var(--md-nav-link-active);
+  color: var(--md-on-nav-link-active);
 }
 
 /* Download pill - prominent */
@@ -246,8 +256,8 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
   padding: 8px 20px;
   border-radius: var(--md-shape-full);
-  background: var(--md-tertiary);
-  color: var(--md-on-tertiary);
+  background: var(--md-nav-pill);
+  color: var(--md-on-nav-pill);
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
@@ -267,7 +277,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-pill.active {
   background: var(--md-nav-pill-active);
-  color: var(--md-on-tertiary-container);
+  color: var(--md-on-nav-pill-active);
 }
 
 .nav-icon-btn {
