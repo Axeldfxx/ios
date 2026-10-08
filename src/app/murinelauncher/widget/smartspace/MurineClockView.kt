@@ -60,11 +60,16 @@ class MurineClockView @JvmOverloads constructor(
         val byHeight = h * ROW_FRACTION / LINE_HEIGHT_FACTOR
         val byWidth = w * 0.9f / DIGITS_WIDTH_FACTOR
         val size = minOf(byHeight, byWidth)
+        var changed = false
         listOfNotNull(hourView, minuteView).forEach { tc ->
             if (kotlin.math.abs(tc.textSize - size) > 0.5f) {
                 tc.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
+                changed = true
             }
         }
+        // requestLayout() fired from inside a layout pass can be dropped by the widget host,
+        // leaving the hour/minute boxes at their old width (uneven gap). Re-request next frame.
+        if (changed) post { requestLayout() }
     }
 
     override fun onAttachedToWindow() {
@@ -144,7 +149,7 @@ class MurineClockView @JvmOverloads constructor(
         private const val DATE_SKELETON = "EEEEMMMMd"
 
         private const val ROW_FRACTION = 11f / 16f
-        private const val LINE_HEIGHT_FACTOR = 1.25f
-        private const val DIGITS_WIDTH_FACTOR = 2.6f
+        private const val LINE_HEIGHT_FACTOR = 1.1f
+        private const val DIGITS_WIDTH_FACTOR = 2.8f
     }
 }
