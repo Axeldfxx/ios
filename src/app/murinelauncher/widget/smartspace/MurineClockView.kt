@@ -2,13 +2,17 @@ package app.murinelauncher.widget.smartspace
 
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.TextClock
+import com.android.launcher3.LauncherPrefChangeListener
+import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
+import com.android.launcher3.util.Themes
 import java.util.Locale
 
 /**
@@ -27,6 +31,15 @@ class MurineClockView @JvmOverloads constructor(
     private var minuteView: TextClock? = null
     private var attached = false
     private var currentLocale: Locale? = null
+    private var baseTypeface: Typeface? = null
+    private var infinityStyle = true
+
+    /** Re-applies the clock style when the "Infinity X clock style" switch is toggled. */
+    private val prefListener = LauncherPrefChangeListener { key ->
+        if (key == LauncherPrefs.CLOCK_STYLE_INFINITYX.sharedPrefKey) {
+            post { applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context)) }
+        }
+    }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -34,7 +47,8 @@ class MurineClockView @JvmOverloads constructor(
         colonView = findViewById(R.id.murine_clock_colon)
         minuteView = findViewById(R.id.murine_clock_minute)
         dateText = findViewById(R.id.murine_clock_date)
-        applyLocaleDateFormat()
+        baseTypeface = hourView?.typeface
+        applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context))
 
         // Uncomment to show alarms when clicked
         /*setOnClickListener {
@@ -79,7 +93,9 @@ class MurineClockView @JvmOverloads constructor(
         super.onAttachedToWindow()
         if (!attached) {
             attached = true
-            // Custom logic
+            LauncherPrefs.get(context).addListener(prefListener, LauncherPrefs.CLOCK_STYLE_INFINITYX)
+            val wanted = LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context)
+            if (wanted != infinityStyle) applyClockStyle(wanted)
         }
     }
 
@@ -87,8 +103,43 @@ class MurineClockView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         if (attached) {
             attached = false
-            // Custom logic
+            LauncherPrefs.get(context).removeListener(prefListener, LauncherPrefs.CLOCK_STYLE_INFINITYX)
         }
+    }
+
+    /**
+     * Switches between the Infinity X look (red hour, bold, short date) and the
+     * original Murine look (all [R.attr.workspaceTextColor], regular weight, long date).
+     */
+    private fun applyClockStyle(infinity: Boolean) {
+        infinityStyle = infinity
+        val textColor = if (infinity) {
+            resources.getColor(R.color.murine_clock_text, context.theme)
+        } else {
+            Themes.getAttrColor(context, R.attr.workspaceTextColor)
+        }
+        val hourColor = if (infinity) {
+            resources.getColor(R.color.murine_clock_hour, context.theme)
+        } else {
+            textColor
+        }
+        hourView?.setTextColor(hourColor)
+        colonView?.setTextColor(textColor)
+        minuteView?.setTextColor(textColor)
+        dateText?.setTextColor(textColor)
+        dateText?.alpha = if (infinity) 0.9f else 0.85f
+
+        baseTypeface?.let { base ->
+            val style = if (infinity) Typeface.BOLD else Typeface.NORMAL
+            listOfNotNull<TextView>(hourView, colonView, minuteView).forEach {
+                it.setTypeface(base, style)
+            }
+        }
+
+        // Date pattern depends on the style, so force it to be recomputed.
+        currentLocale = null
+        applyLocaleDateFormat()
+        requestLayout()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -104,7 +155,8 @@ class MurineClockView @JvmOverloads constructor(
         val locale: Locale = resources.configuration.locales.get(0)
         if (locale == currentLocale) return
         currentLocale = locale
-        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, DATE_SKELETON)
+        val skeleton = if (infinityStyle) DATE_SKELETON else DATE_SKELETON_LONG
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
         clock.format12Hour = pattern
         clock.format24Hour = pattern
     }
@@ -151,6 +203,7 @@ class MurineClockView @JvmOverloads constructor(
     companion object {
         // Order-independent skeleton: short weekday + short month + day-of-month
         private const val DATE_SKELETON = "EEEMMMd"
+        private const val DATE_SKELETON_LONG = "EEEEMMMMd"
 
         private const val ROW_FRACTION = 11f / 16f
         private const val LINE_HEIGHT_FACTOR = 1.1f
