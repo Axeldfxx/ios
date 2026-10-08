@@ -3,6 +3,7 @@ package app.murinelauncher.widget.smartspace
 import android.content.Context
 import android.content.res.Configuration
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.widget.LinearLayout
 import android.widget.TextClock
 import com.android.launcher3.R
@@ -20,13 +21,15 @@ class MurineClockView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     private var dateText: TextClock? = null
-    private var clockView: TextClock? = null
+    private var hourView: TextClock? = null
+    private var minuteView: TextClock? = null
     private var attached = false
     private var currentLocale: Locale? = null
 
     override fun onFinishInflate() {
         super.onFinishInflate()
-        clockView = findViewById(R.id.murine_clock)
+        hourView = findViewById(R.id.murine_clock_hour)
+        minuteView = findViewById(R.id.murine_clock_minute)
         dateText = findViewById(R.id.murine_clock_date)
         applyLocaleDateFormat()
 
@@ -41,6 +44,27 @@ class MurineClockView @JvmOverloads constructor(
                 // No clock app available
             }
         }*/
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        updateClockTextSize(w, h)
+    }
+
+    /**
+     * Digits scale with the widget: limited by the row height (11/16 of the widget)
+     * and by the width so "HHmm" never overflows.
+     */
+    private fun updateClockTextSize(w: Int, h: Int) {
+        if (w <= 0 || h <= 0) return
+        val byHeight = h * ROW_FRACTION / LINE_HEIGHT_FACTOR
+        val byWidth = w * 0.9f / DIGITS_WIDTH_FACTOR
+        val size = minOf(byHeight, byWidth)
+        listOfNotNull(hourView, minuteView).forEach { tc ->
+            if (kotlin.math.abs(tc.textSize - size) > 0.5f) {
+                tc.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
+            }
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -85,7 +109,7 @@ class MurineClockView @JvmOverloads constructor(
      */
     fun refreshClockFormat() {
         if (Utilities.ATLEAST_Q || isAttachedToWindow) {
-            listOfNotNull(clockView, dateText).forEach { tc ->
+            listOfNotNull(hourView, minuteView, dateText).forEach { tc ->
                 tc.format12Hour = tc.format12Hour
                 tc.format24Hour = tc.format24Hour
             }
@@ -93,16 +117,22 @@ class MurineClockView @JvmOverloads constructor(
         }
         val now = System.currentTimeMillis()
         val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
-        listOfNotNull(clockView, dateText).forEach { tc ->
+        listOfNotNull(hourView, minuteView, dateText).forEach { tc ->
             val pattern = (if (is24Hour) tc.format24Hour else tc.format12Hour)
                 ?: tc.format24Hour ?: tc.format12Hour ?: return@forEach
             tc.text = android.text.format.DateFormat.format(pattern, now)
         }
     }
 
+    /** Colors the hour and date. Minutes keep the red accent. */
     fun setTextColor(color: Int) {
-        clockView?.setTextColor(color)
+        hourView?.setTextColor(color)
         dateText?.setTextColor(color)
+    }
+
+    /** Colors the minutes (default: Infinity X red). */
+    fun setAccentColor(color: Int) {
+        minuteView?.setTextColor(color)
     }
 
     override fun setPadding(left: Int, top: Int, right: Int, bottom: Int) {
@@ -112,5 +142,9 @@ class MurineClockView @JvmOverloads constructor(
     companion object {
         // Order-independent skeleton: weekday + month + day-of-month
         private const val DATE_SKELETON = "EEEEMMMMd"
+
+        private const val ROW_FRACTION = 11f / 16f
+        private const val LINE_HEIGHT_FACTOR = 1.25f
+        private const val DIGITS_WIDTH_FACTOR = 2.6f
     }
 }
