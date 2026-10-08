@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.TextClock
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -22,6 +23,7 @@ class MurineClockView @JvmOverloads constructor(
 
     private var dateText: TextClock? = null
     private var hourView: TextClock? = null
+    private var colonView: TextView? = null
     private var minuteView: TextClock? = null
     private var attached = false
     private var currentLocale: Locale? = null
@@ -29,6 +31,7 @@ class MurineClockView @JvmOverloads constructor(
     override fun onFinishInflate() {
         super.onFinishInflate()
         hourView = findViewById(R.id.murine_clock_hour)
+        colonView = findViewById(R.id.murine_clock_colon)
         minuteView = findViewById(R.id.murine_clock_minute)
         dateText = findViewById(R.id.murine_clock_date)
         applyLocaleDateFormat()
@@ -61,7 +64,7 @@ class MurineClockView @JvmOverloads constructor(
         val byWidth = w * 0.9f / DIGITS_WIDTH_FACTOR
         val size = minOf(byHeight, byWidth)
         var changed = false
-        listOfNotNull(hourView, minuteView).forEach { tc ->
+        listOfNotNull<TextView>(hourView, colonView, minuteView).forEach { tc ->
             if (kotlin.math.abs(tc.textSize - size) > 0.5f) {
                 tc.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
                 changed = true
@@ -94,7 +97,7 @@ class MurineClockView @JvmOverloads constructor(
     }
 
     /**
-     * Sets the date [TextClock]'s pattern using the locale's best weekday + month + day-of-month format
+     * Sets the date [TextClock]'s pattern using the locale's best short weekday + short month + day-of-month format
      */
     private fun applyLocaleDateFormat() {
         val clock = dateText ?: return
@@ -129,15 +132,16 @@ class MurineClockView @JvmOverloads constructor(
         }
     }
 
-    /** Colors the hour and date. Minutes keep the red accent. */
+    /** Colors the colon, minutes and date. The hour keeps the red accent. */
     fun setTextColor(color: Int) {
-        hourView?.setTextColor(color)
+        colonView?.setTextColor(color)
+        minuteView?.setTextColor(color)
         dateText?.setTextColor(color)
     }
 
-    /** Colors the minutes (default: Infinity X red). */
+    /** Colors the hour (default: Infinity X red). */
     fun setAccentColor(color: Int) {
-        minuteView?.setTextColor(color)
+        hourView?.setTextColor(color)
     }
 
     override fun setPadding(left: Int, top: Int, right: Int, bottom: Int) {
@@ -145,11 +149,11 @@ class MurineClockView @JvmOverloads constructor(
     }
 
     companion object {
-        // Order-independent skeleton: weekday + month + day-of-month
-        private const val DATE_SKELETON = "EEEEMMMMd"
+        // Order-independent skeleton: short weekday + short month + day-of-month
+        private const val DATE_SKELETON = "EEEMMMd"
 
         private const val ROW_FRACTION = 11f / 16f
         private const val LINE_HEIGHT_FACTOR = 1.1f
-        private const val DIGITS_WIDTH_FACTOR = 2.8f
+        private const val DIGITS_WIDTH_FACTOR = 3.1f
     }
 }
