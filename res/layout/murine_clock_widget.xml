@@ -47,11 +47,27 @@
             android:textSize="72sp"
             android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/murine_clock_colon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/murine_gantari_medium"
+            android:includeFontPadding="false"
+            android:letterSpacing="-0.04"
+            android:shadowColor="#A0000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="6"
+            android:singleLine="true"
+            android:text=":"
+            android:textColor="@color/murine_clock_text"
+            android:textSize="72sp"
+            android:textStyle="bold" />
+
         <TextClock
             android:id="@+id/murine_clock_minute"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
             android:fontFamily="@font/murine_gantari_medium"
             android:format12Hour="mm"
             android:format24Hour="mm"
@@ -77,8 +93,8 @@
         android:alpha="0.9"
         android:autoSizeTextType="uniform"
         android:fontFamily="@font/murine_gantari_medium"
-        android:format12Hour="EEEE MMMM d"
-        android:format24Hour="EEEE MMMM d"
+        android:format12Hour="EEE, MMM d"
+        android:format24Hour="EEE, MMM d"
         android:includeFontPadding="false"
         android:autoSizeMinTextSize="0.1sp"
         android:autoSizeStepGranularity="0.1sp"
@@ -87,6 +103,6 @@
         android:shadowDy="2"
         android:shadowRadius="4"
         android:singleLine="true"
-        android:textColor="@color/murine_clock_hour"
+        android:textColor="@color/murine_clock_text"
         android:textSize="16sp" />
 </app.murinelauncher.widget.smartspace.MurineClockView>
