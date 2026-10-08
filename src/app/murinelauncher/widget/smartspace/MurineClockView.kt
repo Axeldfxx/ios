@@ -31,7 +31,8 @@ class MurineClockView @JvmOverloads constructor(
     private var minuteView: TextClock? = null
     private var attached = false
     private var currentLocale: Locale? = null
-    private var baseTypeface: Typeface? = null
+    private var infinityTypeface: Typeface? = null
+    private var originalTypeface: Typeface? = null
     private var infinityStyle = true
 
     /** Re-applies the clock style when the "Infinity X clock style" switch is toggled. */
@@ -47,7 +48,8 @@ class MurineClockView @JvmOverloads constructor(
         colonView = findViewById(R.id.murine_clock_colon)
         minuteView = findViewById(R.id.murine_clock_minute)
         dateText = findViewById(R.id.murine_clock_date)
-        baseTypeface = hourView?.typeface
+        originalTypeface = loadFont(R.font.murine_gantari_medium)
+        infinityTypeface = loadFont(R.font.murine_clock_font)
         applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context))
 
         // Uncomment to show alarms when clicked
@@ -107,9 +109,15 @@ class MurineClockView @JvmOverloads constructor(
         }
     }
 
+    private fun loadFont(id: Int): Typeface? = try {
+        resources.getFont(id)
+    } catch (_: Exception) {
+        null
+    }
+
     /**
-     * Switches between the Infinity X look (red hour, bold, short date) and the
-     * original Murine look (all [R.attr.workspaceTextColor], regular weight, long date).
+     * Switches between the Infinity X look (red hour, own font, short date) and the
+     * original Murine look (all [R.attr.workspaceTextColor], stock font, long date).
      */
     private fun applyClockStyle(infinity: Boolean) {
         infinityStyle = infinity
@@ -129,11 +137,10 @@ class MurineClockView @JvmOverloads constructor(
         dateText?.setTextColor(textColor)
         dateText?.alpha = if (infinity) 0.9f else 0.85f
 
-        baseTypeface?.let { base ->
-            val style = if (infinity) Typeface.BOLD else Typeface.NORMAL
-            listOfNotNull<TextView>(hourView, colonView, minuteView).forEach {
-                it.setTypeface(base, style)
-            }
+        // Infinity X mode uses its own font file (res/font/murine_clock_font.ttf, weight comes
+        // from the file itself); original mode keeps the stock Gantari. The date stays Gantari.
+        (if (infinity) infinityTypeface else originalTypeface)?.let { tf ->
+            listOfNotNull<TextView>(hourView, colonView, minuteView).forEach { it.typeface = tf }
         }
 
         // Date pattern depends on the style, so force it to be recomputed.
