@@ -351,6 +351,9 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField
         val GESTURE_SWIPE_DOWN_NOTIFICATIONS =
             backedUpItem(SettingsHomeFragment.SWIPE_DOWN_NOTIFICATIONS, true)
+                    /** true = Infinity X style clock (red hour), false = original Murine clock. */
+        @JvmField
+        val CLOCK_STYLE_INFINITYX = backedUpItem("pref_clock_style_infinityx", true)
         @JvmField
         val ACCESSIBILITY_DISCLOSURE_ACCEPTED =
             backedUpItem("pref_accessibility_disclosure_accepted", false)
