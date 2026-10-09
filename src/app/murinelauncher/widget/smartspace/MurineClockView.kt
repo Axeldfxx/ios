@@ -30,6 +30,7 @@ class MurineClockView @JvmOverloads constructor(
     private var colonView: TextView? = null
     private var minuteView: TextClock? = null
     private var weatherView: TextView? = null
+    private var weatherIcon: WeatherIconDrawable? = null
     private var lastW = 0
     private var lastH = 0
     private var attached = false
@@ -109,23 +110,37 @@ class MurineClockView @JvmOverloads constructor(
             // width of both strings per 1px of text size
             val perPx = date.paint.measureText(date.text?.toString() ?: "") / date.textSize +
                 weather.paint.measureText(weather.text?.toString() ?: "") / weather.textSize
-            if (perPx > 0f) size = minOf(size, (w * 0.94f - gap) / perPx)
+            // the icon is about as wide as 1.15x the text size, plus its padding
+            val iconPad = weather.compoundDrawablePadding
+            if (perPx > 0f) {
+                size = minOf(size, (w * 0.94f - gap - iconPad) / (perPx + ICON_SCALE))
+            }
         }
         listOfNotNull<TextView>(date, weather).forEach { tv ->
             if (kotlin.math.abs(tv.textSize - size) > 0.5f) {
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
             }
         }
+        val icon = weatherIcon
+        if (weather != null && weatherShown && icon != null) {
+            val iconSize = (size * ICON_SCALE).toInt()
+            icon.setBounds(0, 0, iconSize, iconSize)
+            weather.setCompoundDrawablesRelative(icon, null, null, null)
+        }
     }
 
     /** Shows the cached "25°C • Clear" line when weather is enabled and available. */
     private fun applyWeather() {
         val view = weatherView ?: return
-        val text = ClockWeather.currentText(context)
-        if (text.isEmpty()) {
+        val line = ClockWeather.currentLine(context)
+        if (line == null) {
             view.visibility = GONE
+            view.setCompoundDrawablesRelative(null, null, null, null)
+            weatherIcon = null
         } else {
-            view.text = text
+            view.text = line.second
+            weatherIcon = WeatherIconDrawable(line.first)
+            view.compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
             view.visibility = VISIBLE
         }
         updateInfoTextSize(lastW, lastH)
@@ -296,6 +311,7 @@ class MurineClockView @JvmOverloads constructor(
 
         private const val ROW_FRACTION = 11f / 16f
         private const val INFO_FRACTION = 3f / 16f
+        private const val ICON_SCALE = 1.15f
         private const val INFO_LINE_FACTOR = 1.25f
         private const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
         private const val LINE_HEIGHT_FACTOR = 1.1f
