@@ -29,6 +29,9 @@ class MurineClockView @JvmOverloads constructor(
     private var hourView: TextClock? = null
     private var colonView: TextView? = null
     private var minuteView: TextClock? = null
+    private var weatherView: TextView? = null
+    private var lastW = 0
+    private var lastH = 0
     private var attached = false
     private var currentLocale: Locale? = null
     private var infinityTypeface: Typeface? = null
@@ -37,8 +40,25 @@ class MurineClockView @JvmOverloads constructor(
 
     /** Re-applies the clock style when the "Infinity X clock style" switch is toggled. */
     private val prefListener = LauncherPrefChangeListener { key ->
-        if (key == LauncherPrefs.CLOCK_STYLE_INFINITYX.sharedPrefKey) {
-            post { applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context)) }
+        when (key) {
+            LauncherPrefs.CLOCK_STYLE_INFINITYX.sharedPrefKey ->
+                post { applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context)) }
+            LauncherPrefs.CLOCK_WEATHER_ENABLED.sharedPrefKey,
+            LauncherPrefs.CLOCK_WEATHER_PLACE.sharedPrefKey,
+            LauncherPrefs.CLOCK_WEATHER_UNIT.sharedPrefKey,
+            LauncherPrefs.CLOCK_WEATHER_TEXT.sharedPrefKey -> post {
+                applyWeather()
+                ClockWeather.refreshIfNeeded(context) { post { applyWeather() } }
+            }
+            else -> Unit
+        }
+    }
+
+    /** Refreshes the weather line now and every 30 minutes while attached. */
+    private val weatherTick = object : Runnable {
+        override fun run() {
+            ClockWeather.refreshIfNeeded(context) { post { applyWeather() } }
+            postDelayed(this, WEATHER_REFRESH_MS)
         }
     }
 
@@ -48,6 +68,7 @@ class MurineClockView @JvmOverloads constructor(
         colonView = findViewById(R.id.murine_clock_colon)
         minuteView = findViewById(R.id.murine_clock_minute)
         dateText = findViewById(R.id.murine_clock_date)
+        weatherView = findViewById(R.id.murine_clock_weather)
         originalTypeface = loadFont(R.font.murine_gantari_medium)
         infinityTypeface = loadFont(R.font.murine_clock_font)
         applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context))
@@ -67,7 +88,47 @@ class MurineClockView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        lastW = w
+        lastH = h
         updateClockTextSize(w, h)
+        updateInfoTextSize(w, h)
+    }
+
+    /**
+     * Sizes the date and weather text from the widget height (3/16 of it) and shrinks both
+     * if "date + weather" would not fit the width.
+     */
+    private fun updateInfoTextSize(w: Int, h: Int) {
+        if (w <= 0 || h <= 0) return
+        val date = dateText ?: return
+        var size = h * INFO_FRACTION / INFO_LINE_FACTOR
+        val weather = weatherView
+        val weatherShown = weather != null && weather.visibility == VISIBLE
+        if (weather != null && weatherShown && date.textSize > 0f && weather.textSize > 0f) {
+            val gap = (weather.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.marginStart ?: 0
+            // width of both strings per 1px of text size
+            val perPx = date.paint.measureText(date.text?.toString() ?: "") / date.textSize +
+                weather.paint.measureText(weather.text?.toString() ?: "") / weather.textSize
+            if (perPx > 0f) size = minOf(size, (w * 0.94f - gap) / perPx)
+        }
+        listOfNotNull<TextView>(date, weather).forEach { tv ->
+            if (kotlin.math.abs(tv.textSize - size) > 0.5f) {
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
+            }
+        }
+    }
+
+    /** Shows the cached "25°C • Clear" line when weather is enabled and available. */
+    private fun applyWeather() {
+        val view = weatherView ?: return
+        val text = ClockWeather.currentText(context)
+        if (text.isEmpty()) {
+            view.visibility = GONE
+        } else {
+            view.text = text
+            view.visibility = VISIBLE
+        }
+        updateInfoTextSize(lastW, lastH)
     }
 
     /**
@@ -95,9 +156,19 @@ class MurineClockView @JvmOverloads constructor(
         super.onAttachedToWindow()
         if (!attached) {
             attached = true
-            LauncherPrefs.get(context).addListener(prefListener, LauncherPrefs.CLOCK_STYLE_INFINITYX)
+            LauncherPrefs.get(context).addListener(
+                prefListener,
+                LauncherPrefs.CLOCK_STYLE_INFINITYX,
+                LauncherPrefs.CLOCK_WEATHER_ENABLED,
+                LauncherPrefs.CLOCK_WEATHER_PLACE,
+                LauncherPrefs.CLOCK_WEATHER_UNIT,
+                LauncherPrefs.CLOCK_WEATHER_TEXT
+            )
             val wanted = LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context)
             if (wanted != infinityStyle) applyClockStyle(wanted)
+            applyWeather()
+            removeCallbacks(weatherTick)
+            post(weatherTick)
         }
     }
 
@@ -105,7 +176,15 @@ class MurineClockView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         if (attached) {
             attached = false
-            LauncherPrefs.get(context).removeListener(prefListener, LauncherPrefs.CLOCK_STYLE_INFINITYX)
+            removeCallbacks(weatherTick)
+            LauncherPrefs.get(context).removeListener(
+                prefListener,
+                LauncherPrefs.CLOCK_STYLE_INFINITYX,
+                LauncherPrefs.CLOCK_WEATHER_ENABLED,
+                LauncherPrefs.CLOCK_WEATHER_PLACE,
+                LauncherPrefs.CLOCK_WEATHER_UNIT,
+                LauncherPrefs.CLOCK_WEATHER_TEXT
+            )
         }
     }
 
@@ -135,7 +214,9 @@ class MurineClockView @JvmOverloads constructor(
         colonView?.setTextColor(textColor)
         minuteView?.setTextColor(textColor)
         dateText?.setTextColor(textColor)
+        weatherView?.setTextColor(textColor)
         dateText?.alpha = if (infinity) 0.9f else 0.85f
+        weatherView?.alpha = if (infinity) 0.9f else 0.85f
 
         // Infinity X mode uses its own font file (res/font/murine_clock_font.ttf, weight comes
         // from the file itself); original mode keeps the stock Gantari. The date stays Gantari.
@@ -146,6 +227,7 @@ class MurineClockView @JvmOverloads constructor(
         // Date pattern depends on the style, so force it to be recomputed.
         currentLocale = null
         applyLocaleDateFormat()
+        post { updateInfoTextSize(lastW, lastH) }
         requestLayout()
     }
 
@@ -213,6 +295,9 @@ class MurineClockView @JvmOverloads constructor(
         private const val DATE_SKELETON_LONG = "EEEEMMMMd"
 
         private const val ROW_FRACTION = 11f / 16f
+        private const val INFO_FRACTION = 3f / 16f
+        private const val INFO_LINE_FACTOR = 1.25f
+        private const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
         private const val LINE_HEIGHT_FACTOR = 1.1f
         private const val DIGITS_WIDTH_FACTOR = 3.1f
     }
