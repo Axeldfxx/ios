@@ -60,14 +60,19 @@ object ClockWeather {
         if (LauncherPrefs.CLOCK_WEATHER_UNIT.get(context) == "f") "f" else "c"
 
     private fun cacheKey(context: Context): String =
-        LauncherPrefs.CLOCK_WEATHER_PLACE.get(context) + "|" + unitOf(context)
+        LauncherPrefs.CLOCK_WEATHER_PLACE.get(context) + "|" + unitOf(context) + "|v4"
 
-    /** Cached line to show right now, or "" when weather is off, unset or not loaded yet. */
-    fun currentText(context: Context): String {
-        if (!LauncherPrefs.CLOCK_WEATHER_ENABLED.get(context)) return ""
-        if (LauncherPrefs.CLOCK_WEATHER_PLACE.get(context).isEmpty()) return ""
-        if (LauncherPrefs.CLOCK_WEATHER_CACHE_KEY.get(context) != cacheKey(context)) return ""
-        return LauncherPrefs.CLOCK_WEATHER_TEXT.get(context)
+    /**
+     * Cached (icon kind, text) to show right now, e.g. ("partly_day", "33°C • Partly cloudy"),
+     * or null when weather is off, unset or not loaded yet.
+     */
+    fun currentLine(context: Context): Pair<String, String>? {
+        if (!LauncherPrefs.CLOCK_WEATHER_ENABLED.get(context)) return null
+        if (LauncherPrefs.CLOCK_WEATHER_PLACE.get(context).isEmpty()) return null
+        if (LauncherPrefs.CLOCK_WEATHER_CACHE_KEY.get(context) != cacheKey(context)) return null
+        val parts = LauncherPrefs.CLOCK_WEATHER_TEXT.get(context).split("|", limit = 2)
+        if (parts.size != 2 || parts[1].isEmpty()) return null
+        return parts[0] to parts[1]
     }
 
     /**
@@ -98,14 +103,17 @@ object ClockWeather {
                 val weather = JSONObject(
                     httpGet(
                         "https://api.open-meteo.com/v1/forecast?latitude=${coords[0]}" +
-                            "&longitude=${coords[1]}&current=temperature_2m,weather_code" +
+                            "&longitude=${coords[1]}&current=temperature_2m,weather_code,is_day" +
                             "&temperature_unit=" + if (unit == "f") "fahrenheit" else "celsius"
                     )
                 )
                 val current = weather.getJSONObject("current")
                 val temp = current.getDouble("temperature_2m").roundToInt()
-                val text = "$temp°${unit.uppercase(Locale.US)} • " +
-                    describe(current.getInt("weather_code"))
+                val code = current.getInt("weather_code")
+                val isDay = current.optInt("is_day", 1) == 1
+                // Stored as "<icon kind>|<text>"; see currentLine().
+                val text = "${iconKind(code, isDay)}|$temp°${unit.uppercase(Locale.US)} • " +
+                    describe(code)
 
                 LauncherPrefs.get(app).put(
                     LauncherPrefs.CLOCK_WEATHER_CACHE_KEY to key,
@@ -131,6 +139,18 @@ object ClockWeather {
         } finally {
             conn.disconnect()
         }
+    }
+
+    /** WMO weather interpretation codes -> icon kind drawn by [WeatherIconDrawable]. */
+    private fun iconKind(code: Int, isDay: Boolean): String = when (code) {
+        0, 1 -> if (isDay) "clear_day" else "clear_night"
+        2 -> if (isDay) "partly_day" else "partly_night"
+        3 -> "cloudy"
+        45, 48 -> "fog"
+        in 51..57, in 61..67, in 80..82 -> "rain"
+        in 71..77, 85, 86 -> "snow"
+        95, 96, 99 -> "storm"
+        else -> "cloudy"
     }
 
     /** WMO weather interpretation codes -> short label. */
