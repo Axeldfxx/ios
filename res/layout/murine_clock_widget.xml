@@ -29,7 +29,7 @@
         android:gravity="start|center_vertical"
         android:orientation="horizontal">
 
-        <TextClock
+        <app.murinelauncher.widget.smartspace.FirstCharAccentTextClock
             android:id="@+id/murine_clock_hour"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -43,7 +43,7 @@
             android:shadowDy="2"
             android:shadowRadius="6"
             android:singleLine="true"
-            android:textColor="@color/murine_clock_hour"
+            android:textColor="@color/murine_clock_text"
             android:textSize="72sp" />
 
         <TextView
