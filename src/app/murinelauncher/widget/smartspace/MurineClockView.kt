@@ -26,7 +26,7 @@ class MurineClockView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     private var dateText: TextClock? = null
-    private var hourView: TextClock? = null
+    private var hourView: FirstCharAccentTextClock? = null
     private var colonView: TextView? = null
     private var minuteView: TextClock? = null
     private var weatherView: TextView? = null
@@ -225,7 +225,8 @@ class MurineClockView @JvmOverloads constructor(
         } else {
             textColor
         }
-        hourView?.setTextColor(hourColor)
+        hourView?.setTextColor(textColor)
+        hourView?.setAccent(hourColor)
         colonView?.setTextColor(textColor)
         minuteView?.setTextColor(textColor)
         dateText?.setTextColor(textColor)
@@ -288,8 +289,9 @@ class MurineClockView @JvmOverloads constructor(
         }
     }
 
-    /** Colors the colon, minutes and date. The hour keeps the red accent. */
+    /** Colors the hour, colon, minutes and date. The first hour digit keeps the accent. */
     fun setTextColor(color: Int) {
+        hourView?.setTextColor(color)
         colonView?.setTextColor(color)
         minuteView?.setTextColor(color)
         dateText?.setTextColor(color)
@@ -297,7 +299,7 @@ class MurineClockView @JvmOverloads constructor(
 
     /** Colors the hour (default: Infinity X red). */
     fun setAccentColor(color: Int) {
-        hourView?.setTextColor(color)
+        hourView?.setAccent(color)
     }
 
     override fun setPadding(left: Int, top: Int, right: Int, bottom: Int) {
