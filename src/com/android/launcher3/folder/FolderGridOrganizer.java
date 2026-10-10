@@ -42,8 +42,8 @@ public class FolderGridOrganizer {
     private int mCountX;
     private int mCountY;
     private boolean mDisplayingUpperLeftQuadrant = false;
-    private static final int PREVIEW_MAX_ROWS = 2;
-    private static final int PREVIEW_MAX_COLUMNS = 2;
+    private static final int PREVIEW_MAX_ROWS = 3;
+    private static final int PREVIEW_MAX_COLUMNS = 3;
 
     /**
      * Note: must call {@link #setFolderInfo(FolderInfo)} manually for verifier to work.
@@ -200,7 +200,7 @@ public class FolderGridOrganizer {
     /**
      * @param page The page the item is on.
      * @param rank The rank of the item.
-     * @return True iff the icon is in the 2x2 upper left quadrant of the Folder.
+     * @return True iff the icon is in the 3x3 upper left corner of the Folder.
      */
     public boolean isItemInPreview(int page, int rank) {
         // First page items are laid out such that the first 4 items are always in the upper

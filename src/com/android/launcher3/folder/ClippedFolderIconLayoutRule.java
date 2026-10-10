@@ -4,8 +4,16 @@ import com.android.launcher3.Flags;
 
 public class ClippedFolderIconLayoutRule {
 
-    public static final int MAX_NUM_ITEMS_IN_PREVIEW = 4;
+    /** Up to 9 icons are shown in the folder preview, as a 3x3 grid (ColorOS-style). */
+    public static final int MAX_NUM_ITEMS_IN_PREVIEW = 9;
+    /** Folders with up to this many items keep the original circular 2x2 layout. */
+    private static final int MAX_CIRCULAR_ITEMS = 4;
     private static final int MIN_NUM_ITEMS_IN_PREVIEW = 2;
+
+    // 3x3 preview: icon size and spacing as a fraction of the preview area.
+    private static final float GRID3_SCALE = 0.29f;
+    private static final float GRID3_STEP = 0.335f;
+    private static final float GRID3_START = 0.02f;
 
     private static final float MIN_SCALE = 0.44f;
     private static final float MAX_SCALE = 0.51f;
@@ -41,18 +49,33 @@ public class ClippedFolderIconLayoutRule {
         float totalScale = scaleForItem(curNumItems);
         float transX;
         float transY;
+        boolean grid3 = curNumItems > MAX_CIRCULAR_ITEMS;
+        int visibleLimit = grid3 ? MAX_NUM_ITEMS_IN_PREVIEW : MAX_CIRCULAR_ITEMS;
 
         if (index == EXIT_INDEX) {
             // 0 1 * <-- Exit position (row 0, col 2)
             // 2 3
-            getGridPosition(0, 2, mTmpPoint);
+            if (grid3) {
+                getGrid3Position(0, 3, mTmpPoint);
+            } else {
+                getGridPosition(0, 2, mTmpPoint);
+            }
         } else if (index == ENTER_INDEX) {
             // 0 1
             // 2 3 * <-- Enter position (row 1, col 2)
-            getGridPosition(1, 2, mTmpPoint);
-        } else if (index >= MAX_NUM_ITEMS_IN_PREVIEW) {
+            if (grid3) {
+                getGrid3Position(2, 3, mTmpPoint);
+            } else {
+                getGridPosition(1, 2, mTmpPoint);
+            }
+        } else if (index >= visibleLimit) {
             // Items beyond those displayed in the preview are animated to the center
             mTmpPoint[0] = mTmpPoint[1] = mAvailableSpace / 2 - (mIconSize * totalScale) / 2;
+        } else if (grid3) {
+            // 0 1 2
+            // 3 4 5
+            // 6 7 8
+            getGrid3Position(index / 3, index % 3, mTmpPoint);
         } else if (Flags.enableLauncherIconShapes()) {
             if (index == 0) {
                 // top left
@@ -103,6 +126,18 @@ public class ClippedFolderIconLayoutRule {
         result[1] = top + (row * dy);
     }
 
+    /**
+     * Position (top-left of the icon) of the given cell in the 3x3 preview grid. Column 3 / row 3
+     * (outside the grid) is used for the enter / exit animations. Mirrored in RTL.
+     */
+    private void getGrid3Position(int row, int col, float[] result) {
+        if (mIsRtl) {
+            col = 2 - col;
+        }
+        result[0] = mAvailableSpace * (GRID3_START + col * GRID3_STEP);
+        result[1] = mAvailableSpace * (GRID3_START + row * GRID3_STEP);
+    }
+
     // b/392610664 TODO: Change positioning from circular geometry to square / grid-based.
     private void getPosition(int index, int curNumItems, float[] result) {
         // The case of two items is homomorphic to the case of one.
@@ -136,7 +171,7 @@ public class ClippedFolderIconLayoutRule {
         float radiusDilation = Flags.enableLauncherIconShapes() ? MAX_RADIUS_DILATION_SHAPES
                 : MAX_RADIUS_DILATION;
         float radius = mRadius * (1 + radiusDilation * (curNumItems - MIN_NUM_ITEMS_IN_PREVIEW)
-                / (MAX_NUM_ITEMS_IN_PREVIEW - MIN_NUM_ITEMS_IN_PREVIEW));
+                / (MAX_CIRCULAR_ITEMS - MIN_NUM_ITEMS_IN_PREVIEW));
         double theta = theta0 + index * (2 * Math.PI / curNumItems) * direction;
 
         float halfIconSize = (mIconSize * scaleForItem(curNumItems)) / 2;
@@ -151,6 +186,9 @@ public class ClippedFolderIconLayoutRule {
 
     public float scaleForItem(int numItems) {
         // Scale is determined by the number of items in the preview.
+        if (numItems > MAX_CIRCULAR_ITEMS) {
+            return GRID3_SCALE * mBaselineIconScale;
+        }
         final float scale;
         if (numItems <= 3 && !Flags.enableLauncherIconShapes()) {
             scale = MAX_SCALE;
