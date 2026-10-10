@@ -87,6 +87,25 @@ class MurineClockView @JvmOverloads constructor(
         }*/
     }
 
+    /**
+     * Some launcher transitions can leave the hour/minute digits blank (space reserved, nothing
+     * drawn). Re-applying style, format and sizes whenever the window becomes visible again
+     * forces a fresh layout and redraw.
+     */
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == VISIBLE) post { reapplyAll() }
+    }
+
+    private fun reapplyAll() {
+        applyClockStyle(LauncherPrefs.CLOCK_STYLE_INFINITYX.get(context))
+        refreshClockFormat()
+        applyWeather()
+        updateClockTextSize(width, height)
+        requestLayout()
+        invalidate()
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         lastW = w
@@ -100,7 +119,7 @@ class MurineClockView @JvmOverloads constructor(
      * if "date + weather" would not fit the width.
      */
     private fun updateInfoTextSize(w: Int, h: Int) {
-        if (w <= 0 || h <= 0) return
+        if (w <= 0 || h < MIN_VALID_HEIGHT_PX) return
         val date = dateText ?: return
         var size = h * INFO_FRACTION / INFO_LINE_FACTOR
         val weather = weatherView
@@ -151,7 +170,7 @@ class MurineClockView @JvmOverloads constructor(
      * and by the width so "HHmm" never overflows.
      */
     private fun updateClockTextSize(w: Int, h: Int) {
-        if (w <= 0 || h <= 0) return
+        if (w <= 0 || h < MIN_VALID_HEIGHT_PX) return
         val byHeight = h * ROW_FRACTION / LINE_HEIGHT_FACTOR
         val byWidth = w * 0.9f / DIGITS_WIDTH_FACTOR
         val size = minOf(byHeight, byWidth)
@@ -312,6 +331,7 @@ class MurineClockView @JvmOverloads constructor(
         private const val DATE_SKELETON_LONG = "EEEEMMMMd"
 
         private const val ROW_FRACTION = 11f / 16f
+        private const val MIN_VALID_HEIGHT_PX = 60
         private const val INFO_FRACTION = 3f / 16f
         private const val ICON_SCALE = 1.15f
         private const val INFO_LINE_FACTOR = 1.25f
